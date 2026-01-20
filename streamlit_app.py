@@ -14,21 +14,27 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- KẾT NỐI AI ---
-# Lấy API Key từ Secrets của Streamlit
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 
 if api_key:
     genai.configure(api_key=api_key)
 else:
-    st.error("⚠️ Chưa tìm thấy GEMINI_API_KEY. Hãy kiểm tra lại file secrets.toml hoặc cài đặt trên Streamlit Cloud!")
+    st.error("⚠️ Chưa tìm thấy GEMINI_API_KEY trong Secrets!")
 
 def get_ai_response(prompt):
     if not api_key:
-        return "❌ Lỗi: API Key đang trống. Vui lòng cấu hình Key để bắt đầu trò chuyện."
+        return "❌ Lỗi: API Key đang trống."
     
-    # Sử dụng các model ổn định nhất hiện nay
-    models_to_try = ['gemini-1.5-flash', 'gemini-1.5-pro']
-    last_error = "Không xác định"
+    # Danh sách model được cập nhật để tránh lỗi 404
+    # Thêm các hậu tố '-latest' để Google tự chọn bản mới nhất
+    models_to_try = [
+        'gemini-1.5-flash', 
+        'gemini-1.5-flash-latest', 
+        'gemini-1.5-pro-latest',
+        'gemini-pro' # Model đời đầu, rất ổn định
+    ]
+    
+    last_error = ""
 
     for model_name in models_to_try:
         try:
@@ -37,41 +43,32 @@ def get_ai_response(prompt):
             return response.text
         except Exception as e:
             last_error = str(e)
-            continue # Thử model tiếp theo nếu model này lỗi
+            continue 
             
-    # Nếu tất cả các model đều thất bại, trả về chi tiết lỗi thật sự
-    return f"🚨 Innerly gặp sự cố kỹ thuật: {last_error}"
+    return f"🚨 Innerly chưa thể kết nối: {last_error}"
 
 # --- GIAO DIỆN CHÍNH ---
 st.title("Tâm sự cùng Innerly 🧸")
 
-# Khởi tạo lịch sử chat
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# Hiển thị các tin nhắn cũ
 for msg in st.session_state.history:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# Xử lý nhập liệu từ người dùng
 if prompt := st.chat_input("Hãy nói gì đó với mình..."):
-    # Hiển thị tin nhắn người dùng
     st.session_state.history.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
-    # Phản hồi từ AI
     with st.chat_message("assistant"):
         with st.spinner("Innerly đang lắng nghe..."):
             res = get_ai_response(prompt)
             st.write(res)
             st.session_state.history.append({"role": "assistant", "content": res})
 
-# --- PHẦN THÔNG ĐIỆP DƯỚI TRANG ---
 st.divider()
 c1, c2 = st.columns(2)
-with c1: 
-    st.markdown('<div class="card-pink">🌸 Vỗ về: Bạn đã làm rất tốt rồi!</div>', unsafe_allow_html=True)
-with c2: 
-    st.markdown('<div class="card-blue">🌊 Tĩnh lặng: Hít sâu một hơi nhé.</div>', unsafe_allow_html=True)
+with c1: st.markdown('<div class="card-pink">🌸 Vỗ về: Bạn đã làm rất tốt rồi!</div>', unsafe_allow_html=True)
+with c2: st.markdown('<div class="card-blue">🌊 Tĩnh lặng: Hít sâu một hơi nhé.</div>', unsafe_allow_html=True)
