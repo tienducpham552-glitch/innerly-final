@@ -1,31 +1,4 @@
-import streamlit as st
-import google.generativeai as genai
-from styles import apply_styles
-
-# 1. Cài đặt trang và giao diện
-st.set_page_config(page_title="Trò chuyện cùng Innerly", page_icon="🧸")
-apply_styles()
-
-st.title("🧸 Trò Chuyện cùng Innerly")
-
-# 2. Kiểm tra API Key từ Secrets
-api_key = st.secrets.get("GEMINI_API_KEY", "")
-
-if not api_key:
-    st.error("⚠️ Chưa tìm thấy API Key. Bạn hãy vào Settings -> Secrets để dán Key nhé.")
-    st.stop()
-
-# 3. Cấu hình AI (Dùng gemini-pro cho ổn định nhất)
-genai.configure(api_key=api_key)
-
-# 4. Quản lý lịch sử chat
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Hiển thị lịch sử cũ
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+# ... (Các phần trên giữ nguyên)
 
 # 5. Xử lý khi bạn nhập tin nhắn
 if prompt := st.chat_input("Chia sẻ với mình nhé..."):
@@ -38,8 +11,9 @@ if prompt := st.chat_input("Chia sẻ với mình nhé..."):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         try:
-            # --- ĐOẠN QUAN TRỌNG ĐÃ SỬA: DÙNG GEMINI-PRO ---
-            model = genai.GenerativeModel('gemini-pro') 
+            # --- SỬA DÒNG NÀY ---
+            # Thay 'gemini-pro' bằng 'gemini-1.5-flash'
+            model = genai.GenerativeModel('gemini-1.5-flash') 
             
             # Gửi tin nhắn
             response = model.generate_content(prompt)
