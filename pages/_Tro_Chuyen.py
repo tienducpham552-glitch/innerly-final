@@ -1,9 +1,13 @@
 import streamlit as st
 import google.generativeai as genai
+from styles import apply_custom_styles
+from prompts import SYSTEM_PROMPT
 
+# 1. Áp dụng giao diện
 st.set_page_config(page_title="Innerly Chat", page_icon="🧸")
+apply_custom_styles()
 
-# 1. Cấu hình API
+# 2. Cấu hình API
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 if not api_key:
     st.error("Chưa tìm thấy API Key!")
@@ -11,43 +15,30 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-# 2. KIỂM TRA VÀ CHỌN MODEL (Giải pháp mới)
-@st.cache_resource
-def get_available_model():
-    try:
-        # Liệt kê tất cả các model bạn có quyền truy cập
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        # Ưu tiên các bản 1.5 mới, nếu không có thì lùi về các bản cũ hơn
-        for target in ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']:
-            if target in models:
-                return target
-        return models[0] if models else None
-    except:
-        return 'models/gemini-1.5-flash' # Mặc định nếu lỗi
+# 3. Khởi tạo phiên Chat có bộ nhớ (Context)
+if "chat_session" not in st.session_state:
+    model = genai.GenerativeModel(
+        model_name='gemini-1.5-flash',
+        system_instruction=SYSTEM_PROMPT
+    )
+    st.session_state.chat_session = model.start_chat(history=[])
 
-target_model = get_available_model()
+# 4. Hiển thị tiêu đề và lịch sử
+st.markdown("<h1 class='main-title'>🧸 Trò Chuyện cùng Innerly</h1>", unsafe_allow_html=True)
 
-# 3. Giao diện
-st.title("🧸 Trò Chuyện cùng Innerly")
+for message in st.session_state.chat_session.history:
+    role = "user" if message.role == "user" else "assistant"
+    with st.chat_message(role):
+        st.write(message.parts[0].text)
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
-
-if prompt := st.chat_input("Chia sẻ với mình nhé..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# 5. Nhập tin nhắn
+if prompt := st.chat_input("Chia sẻ tâm tư với Innerly nhé..."):
     with st.chat_message("user"):
         st.write(prompt)
 
     with st.chat_message("assistant"):
         try:
-            model = genai.GenerativeModel(target_model)
-            response = model.generate_content(prompt)
+            response = st.session_state.chat_session.send_message(prompt)
             st.write(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
-            st.error(f"Lỗi: {str(e)}")
-            st.info(f"Đang cố gắng sử dụng model: {target_model}")
+            st.error(f"Innerly đang gặp chút sự cố: {str(e)}")
