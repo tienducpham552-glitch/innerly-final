@@ -1,28 +1,44 @@
-# ... (Các phần trên giữ nguyên)
+import streamlit as st
+import google.generativeai as genai
+# Nếu bạn có file styles.py thì giữ dòng này, không thì xóa đi
+# from styles import apply_styles 
 
-# 5. Xử lý khi bạn nhập tin nhắn
+# 1. Cài đặt trang (BẮT BUỘC PHẢI CÓ Ở ĐẦU MỖI TRANG)
+st.set_page_config(page_title="Trò chuyện cùng Innerly", page_icon="🧸")
+
+# 2. Lấy API Key lại (Vì trang này chạy độc lập)
+api_key = st.secrets.get("GEMINI_API_KEY", "")
+if not api_key:
+    st.error("⚠️ Chưa tìm thấy API Key trong Secrets.")
+    st.stop()
+
+genai.configure(api_key=api_key)
+
+# 3. Khởi tạo lịch sử chat nếu chưa có
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Hiển thị lịch sử cũ
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
+
+# 4. Phần Chat (Dòng bị lỗi của bạn nằm ở đây)
 if prompt := st.chat_input("Chia sẻ với mình nhé..."):
-    # Lưu tin nhắn của bạn
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
-    # AI trả lời
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         try:
-            # --- SỬA DÒNG NÀY ---
-            # Thay 'gemini-pro' bằng 'gemini-1.5-flash'
+            # Nhớ dùng model mới nhé
             model = genai.GenerativeModel('gemini-1.5-flash') 
-            
-            # Gửi tin nhắn
             response = model.generate_content(prompt)
             text_response = response.text
             
-            # Hiển thị và lưu câu trả lời
             message_placeholder.write(text_response)
             st.session_state.messages.append({"role": "assistant", "content": text_response})
             
         except Exception as e:
-            st.error(f"🚨 Có lỗi xảy ra: {str(e)}")
-            st.info("Mẹo: Hãy kiểm tra lại API Key hoặc mạng internet của bạn.")
+            st.error(f"🚨 Lỗi: {str(e)}")
