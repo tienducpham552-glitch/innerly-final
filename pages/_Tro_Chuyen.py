@@ -1,39 +1,46 @@
 import streamlit as st
 import google.generativeai as genai
-# Nếu bạn có file styles.py thì giữ dòng này, không thì xóa đi
-# from styles import apply_styles 
 
-# 1. Cài đặt trang (BẮT BUỘC PHẢI CÓ Ở ĐẦU MỖI TRANG)
+# --- 1. CẤU HÌNH TRANG (Bắt buộc phải có dòng này đầu tiên) ---
 st.set_page_config(page_title="Trò chuyện cùng Innerly", page_icon="🧸")
 
-# 2. Lấy API Key lại (Vì trang này chạy độc lập)
+# --- 2. LẤY API KEY TỪ SECRETS ---
+# Vì đây là trang con nên phải lấy lại API key, nó không tự hiểu từ trang chủ
 api_key = st.secrets.get("GEMINI_API_KEY", "")
+
 if not api_key:
-    st.error("⚠️ Chưa tìm thấy API Key trong Secrets.")
+    st.error("⚠️ Chưa tìm thấy API Key. Bạn hãy kiểm tra lại file secrets.toml nhé.")
     st.stop()
 
+# Cấu hình AI
 genai.configure(api_key=api_key)
 
-# 3. Khởi tạo lịch sử chat nếu chưa có
+# --- 3. GIAO DIỆN CHAT ---
+st.title("🧸 Trò Chuyện cùng Innerly")
+
+# Khởi tạo lịch sử chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Hiển thị lịch sử cũ
+# Hiển thị lịch sử chat cũ
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 4. Phần Chat (Dòng bị lỗi của bạn nằm ở đây)
+# Xử lý khi nhập tin nhắn mới
 if prompt := st.chat_input("Chia sẻ với mình nhé..."):
+    # Lưu tin nhắn user
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
+    # AI trả lời
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         try:
-            # Nhớ dùng model mới nhé
+            # Dùng model Flash để nhanh và ổn định hơn
             model = genai.GenerativeModel('gemini-1.5-flash') 
+            
             response = model.generate_content(prompt)
             text_response = response.text
             
@@ -41,4 +48,4 @@ if prompt := st.chat_input("Chia sẻ với mình nhé..."):
             st.session_state.messages.append({"role": "assistant", "content": text_response})
             
         except Exception as e:
-            st.error(f"🚨 Lỗi: {str(e)}")
+            st.error(f"🚨 Có lỗi xảy ra: {str(e)}")
